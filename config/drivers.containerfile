@@ -1,17 +1,25 @@
 # =========================================================
-# 第1ステージ: 本番イメージからカーネルバージョンを動的に抽出してビルド
+# 第1ステージ: 本番イメージからカーネルバージョンを動的に抽出
 # =========================================================
-# 最初に本番用Bazziteイメージ（$BASE_IMAGE）をベースにして、中身のバージョン情報を正確に取得する
 FROM $BASE_IMAGE AS bazzite-base
+
+# =========================================================
+# 第2ステージ: 抽出したバージョンを環境変数に固定してコンパイル
+# =========================================================
 FROM fedora:44 AS builder
 
-# 本番イメージから、正確なカーネルバージョン（例: 6.19.14-ogc5.1...）の文字列を動的にコピーして環境変数に注入
+# 本番イメージからカーネルバージョンのテキストファイルを一時領域にコピー
 COPY --from=bazzite-base /usr/share/ublue-os/kernel-version /tmp/kernel-version
-RUN export TARGET_KERNEL=$(cat /tmp/kernel-version) && echo "Building for kernel: ${TARGET_KERNEL}"
 
-# 1. Bazzite専用のカーネル開発用リポジトリ（Copr）を有効化し、実機と100%完全一致する開発パッケージを自動検索してインストール
-RUN dnf copr enable -y ublue-os/packages \
-    && TARGET_KERNEL=$(cat /tmp/kernel-version) \
+# 【ここが重要】ファイルの中身を読み込み、このステージ全体の環境変数（ENV）として完全に固定する
+# これにより、これ以降のすべてのRUNコマンドで ${TARGET_KERNEL} が安全に使用可能になります
+RUN echo "TARGET_KERNEL=$(cat /tmp/kernel-version)" >> /etc/environment
+ENV ENV_FILE="/etc/environment"
+
+# 1. Bazzite専用リポジトリの有効化と、正確な kernel-devel のインストール
+RUN desm() { . /etc/environment; echo $TARGET_KERNEL; } \
+    && dnf copr enable -y ublue-os/packages \
+    && TARGET_KERNEL=$(desm) \
     && dnf install -y \
     git \
     make \
@@ -20,20 +28,20 @@ RUN dnf copr enable -y ublue-os/packages \
     kernel-headers \
     && dnf clean all
 
-# 2. Wi-Fiドライバ (shenmintao/aic8800d80) の自動追従ビルド
-RUN git clone https://github.com/shenmintao/aic8800d80.git /usr/src/aic8800 \
+# 2. Wi-Fiドライバ (shenmintao/aic8800d80) のビルド
+RUN . /etc/environment \
+    && git clone https://github.com/shenmintao/aic8800d80.git /usr/src/aic8800 \
     && cd /usr/src/aic8800 \
-    && TARGET_KERNEL=$(cat /tmp/kernel-version) \
     && make -C /lib/modules/${TARGET_KERNEL}/build M=$PWD modules
 
-# 3. センサー用ドライバ (Fred78290/nct6687d) の自動追従ビルド
-RUN git clone https://github.com/Fred78290/nct6687d.git /usr/src/nct6687 \
+# 3. センサー用ドライバ (Fred78290/nct6687d) のビルド
+RUN . /etc/environment \
+    && git clone https://github.com/Fred78290/nct6687d.git /usr/src/nct6687 \
     && cd /usr/src/nct6687 \
-    && TARGET_KERNEL=$(cat /tmp/kernel-version) \
     && make -C /lib/modules/${TARGET_KERNEL}/build M=$PWD modules
 
 # =========================================================
-# 第2ステージ: 成果物を本番イメージへ完全結合
+# 第3ステージ: 成果物を本番イメージへ完全結合
 # =========================================================
 FROM $BASE_IMAGE
 
