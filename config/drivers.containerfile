@@ -11,8 +11,7 @@ FROM fedora:44 AS builder
 # 本番イメージからカーネルバージョンのテキストファイルを一時領域にコピー
 COPY --from=bazzite-base /usr/share/ublue-os/kernel-version /tmp/kernel-version
 
-# 【ここが重要】ファイルの中身を読み込み、このステージ全体の環境変数（ENV）として完全に固定する
-# これにより、これ以降のすべてのRUNコマンドで ${TARGET_KERNEL} が安全に使用可能になります
+# ファイルの中身を読み込み、このステージ全体の環境変数（ENV）として完全に固定
 RUN echo "TARGET_KERNEL=$(cat /tmp/kernel-version)" >> /etc/environment
 ENV ENV_FILE="/etc/environment"
 
@@ -41,13 +40,14 @@ RUN . /etc/environment \
     && make -C /lib/modules/${TARGET_KERNEL}/build M=$PWD modules
 
 # =========================================================
-# 第3ステージ: 成果物を本番イメージへ完全結合
+# 第3ステージ: 正しいパス構造で成果物を本番イメージへ完全結合
 # =========================================================
 FROM $BASE_IMAGE
 
-# コンパイル済みのカーネルオブジェクト（.ko）を本番領域にコピー
-COPY --from=builder /usr/src/aic8800/*.ko /usr/lib/modules/extramodules/
-COPY --from=builder /usr/src/nct6687/*.ko /usr/lib/modules/extramodules/
+# 修正ポイント: 本番環境の正しいカーネルディレクトリ直下に "extra" フォルダを作成し、そこへコピー
+RUN TARGET_KERNEL=$(lookaside-kernel-version) && mkdir -p /usr/lib/modules/${TARGET_KERNEL}/extra/
+COPY --from=builder /usr/src/aic8800/*.ko /usr/lib/modules/${TARGET_KERNEL}/extra/
+COPY --from=builder /usr/src/nct6687/*.ko /usr/lib/modules/${TARGET_KERNEL}/extra/
 
 # aic8800d80に必要なファームウェアバイナリを配置
 COPY --from=builder /usr/src/aic8800/images/*.bin /usr/lib/firmware/
