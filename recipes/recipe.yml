@@ -1,45 +1,45 @@
----
-# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
-# image will be published to ghcr.io/<user>/<name>
-name: template
-# description will be included in the image's metadata
-description: This is my personal OS image.
+# 独自のOSイメージ名（自由に変更可能）
+name: bazzite-bc250
+description: Custom Bazzite image for AMD BC-250 with aic8800 and nct6687 drivers.
 
-# the base image to build on top of (FROM) and the version tag to use
-base-image: ghcr.io/ublue-os/silverblue-main
-image-version: 42 # latest is also supported if you want new updates ASAP
+# ベースとなるBazziteのイメージを指定（安定版の通常AMD/Intel/GPD等用）
+base-image: ghcr.io/ublue-os/bazzite
+image-version: stable
 
-# module configuration, executed in order
-# you can include multiple instances of the same module
 modules:
-  - type: files
-    files:
-      - source: system
-        destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
-
-  - type: dnf
-    repos:
-      copr:
-        - atim/starship
+  # --- 1. システムアップデートとビルド環境の準備 ---
+  - type: rpm-ostree
     install:
-      packages:
-        - micro
-        - starship
-    remove:
-      packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
-        - firefox
-        - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+      - kernel-devel
+      - gcc
+      - make
+      - git
 
-  - type: default-flatpaks
-    configurations:
-      - notify: true # Send notification after install/uninstall is finished (true/false)
-        scope: system
-        # If no repo information is specified, Flathub will be used by default
-        install: # system flatpaks we want all users to have and not remove
-          - org.mozilla.firefox
-          - org.gnome.Loupe
-      - scope: user # Also add Flathub user repo, but no user packages
+  # --- 2. aic8800d80 Wi-Fi/BT ドライバのビルドと導入 ---
+  - type: script
+    snippets:
+      - |
+        echo "Building aic8800 driver..."
+        git clone https://github.com/lwfinger/aic8800.git /tmp/aic8800
+        cd /tmp/aic8800
+        make -j$(nproc)
+        # Bazziteのカーネル更新に追従するディレクトリへモジュールを配置
+        DEST_DIR="/usr/lib/modules/$(uname -r)/extra"
+        mkdir -p "${DEST_DIR}"
+        cp aic8800_fdrv.ko "${DEST_DIR}/"
+        depmod -a
 
-  - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  # --- 3. nct6687 センサードライバのビルドと導入 ---
+  - type: script
+    snippets:
+      - |
+        echo "Building nct6687 driver..."
+        git clone https://github.com/Fred782/nct6687d.git /tmp/nct6687d
+        cd /tmp/nct6687d
+        make -j$(nproc)
+        DEST_DIR="/usr/lib/modules/$(uname -r)/extra"
+        mkdir -p "${DEST_DIR}"
+        cp nct6687.ko "${DEST_DIR}/"
+        depmod -a
+        # 起動時に自動ロードされるように設定
+        echo "nct6687" > /etc/modules-load.d/nct6687.conf
