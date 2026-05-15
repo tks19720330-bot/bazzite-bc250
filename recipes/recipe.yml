@@ -1,45 +1,10 @@
-# 独自のOSイメージ名（自由に変更可能）
 name: bazzite-bc250
 description: Custom Bazzite image for AMD BC-250 with aic8800 and nct6687 drivers.
 
-# ベースとなるBazziteのイメージを指定（安定版の通常AMD/Intel/GPD等用）
 base-image: ghcr.io/ublue-os/bazzite
 image-version: stable
 
 modules:
-  # --- 1. システムアップデートとビルド環境の準備 ---
-  - type: rpm-ostree
-    install:
-      - kernel-devel
-      - gcc
-      - make
-      - git
-
-  # --- 2. aic8800d80 Wi-Fi/BT ドライバのビルドと導入 ---
-  - type: script
-    snippets:
-      - |
-        echo "Building aic8800 driver..."
-        git clone https://github.com/lwfinger/aic8800.git /tmp/aic8800
-        cd /tmp/aic8800
-        make -j$(nproc)
-        # Bazziteのカーネル更新に追従するディレクトリへモジュールを配置
-        DEST_DIR="/usr/lib/modules/$(uname -r)/extra"
-        mkdir -p "${DEST_DIR}"
-        cp aic8800_fdrv.ko "${DEST_DIR}/"
-        depmod -a
-
-  # --- 3. nct6687 センサードライバのビルドと導入 ---
-  - type: script
-    snippets:
-      - |
-        echo "Building nct6687 driver..."
-        git clone https://github.com/Fred782/nct6687d.git /tmp/nct6687d
-        cd /tmp/nct6687d
-        make -j$(nproc)
-        DEST_DIR="/usr/lib/modules/$(uname -r)/extra"
-        mkdir -p "${DEST_DIR}"
-        cp nct6687.ko "${DEST_DIR}/"
-        depmod -a
-        # 起動時に自動ロードされるように設定
-        echo "nct6687" > /etc/modules-load.d/nct6687.conf
+  # 確実なビルドプロセスのため、専用のContainerfileを読み込ませます
+  - type: containerfile
+    path: config/drivers.containerfile
