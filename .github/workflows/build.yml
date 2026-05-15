@@ -30,13 +30,23 @@ jobs:
           - recipe.yml
     steps:
       # the build is fully handled by the reusable github action
+      - name: Generate Cosign Key Pair
+        run: |
+          # 鍵ペアを一時的に生成
+          curl -sSLo cosign https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64
+          chmod +x cosign
+          ./cosign generate-key-pair --password ""
+          
+          # 生成された鍵をBlueBuildが見つけられる場所に配置
+          mv cosign.key ./cosign.key
+          mv cosign.pub ./cosign.pub
       - name: Build Custom Image
         uses: blue-build/github-action@v1.11
         with:
           recipe: ${{ matrix.recipe }}
           registry_token: ${{ github.token }}
+          cosign_private_key: ./cosign.key  # ←生成したローカルの鍵ファイルを直接指定
           pr_event_number: ${{ github.event.number }}
-          disable_signing: 'true'  # ←明示的に署名を無効化する公式オプション
 
           # enabled by default, disable if your image is small and you want faster builds
           maximize_build_space: true
