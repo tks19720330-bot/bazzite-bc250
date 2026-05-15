@@ -4,7 +4,11 @@ description: Custom Bazzite image for AMD BC-250 with aic8800 and nct6687 driver
 base-image: ghcr.io/ublue-os/bazzite
 image-version: stable
 
+#modules:
+#  # 確実なビルドプロセスのため、専用のContainerfileを読み込ませます
+#  - type: containerfile
+#    path: config/drivers.containerfile
 modules:
-  # 確実なビルドプロセスのため、専用のContainerfileを読み込ませます
   - type: containerfile
-    path: config/drivers.containerfile
+    source: local
+    file: config/drivers.containerfile
