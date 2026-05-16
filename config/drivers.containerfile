@@ -54,3 +54,15 @@ RUN ublue_kernel=$(lookaside-kernel-version) \
     && depmod -a ${ublue_kernel} \
     && echo "aic8800" > /etc/modules-load.d/aic8800.conf \
     && echo "nct6687" > /etc/modules-load.d/nct6687.conf
+
+# =========================================================
+# 最終ファクトチェック（セルフテスト）
+# =========================================================
+# ビルドの最終段階で、成果物が正しい場所に物理配置されているか厳密に検査
+# ファイルが1枚でも欠けていれば、ビルドエンジンが「エラー（1）」を返し、Actionsを強制停止させます
+RUN ublue_kernel=$(lookaside-kernel-version) \
+    && echo "=== START FINAL FACT CHECK ===" \
+    && ls -l /usr/lib/modules/${ublue_kernel}/extra/aic8800_fdrv.ko \
+    && ls -l /usr/lib/modules/${ublue_kernel}/extra/nct6687.ko \
+    && ls -l /usr/lib/firmware/aic8800/*.bin \
+    && echo "=== FACT CHECK PASSED SUCCESSFULLY ==="
