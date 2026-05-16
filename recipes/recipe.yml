@@ -1,9 +1,10 @@
 name: bazzite-bc250
 description: Custom Bazzite image for AMD BC-250 with aic8800 and nct6687 drivers.
-
 base-image: ghcr.io/ublue-os/bazzite
 image-version: stable
 
 modules:
-  # 余計なキーは一切記述しません。これだけで自動的にフォルダを探索します。
   - type: containerfile
+    containerfile: |
+      FROM $BASE_IMAGE
+      RUN echo "=== START DNF TEST ===" && dnf install -y git make gcc
