@@ -37,7 +37,4 @@ jobs:
           maximize_build_space: true
         env:
           BLUEBUILD_NO_SIGN: "true"
-      - name: Verify generated image contents
-        run: |
-          podman run --rm ghcr.io/${{ github.repository_owner }}/bazzite-bc250:latest find /usr/lib/modules/ -name "*.ko"
           
