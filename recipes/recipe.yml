@@ -10,4 +10,4 @@ image-version: stable
 #    path: config/drivers.containerfile
 modules:
   - type: containerfile
-    path: config/drivers.containerfile
+    containerfile: config/drivers.containerfile
