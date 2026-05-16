@@ -6,46 +6,5 @@ image-version: stable
 
 modules:
   - type: containerfile
-    containerfile: |
-      # =========================================================
-      # 第1ステージ: 本番イメージからカーネルバージョンを動的に抽出
-      # =========================================================
-      FROM $BASE_IMAGE AS bazzite-base
-
-      # =========================================================
-      # 第2ステージ: ドライバのビルドと、成果物の存在確認（ログ出力）
-      # =========================================================
-      FROM $BASE_IMAGE AS builder
-      COPY --from=bazzite-base /usr/share/ublue-os/kernel-version /tmp/kernel-version
-
-      RUN ublue_kernel=$(cat /tmp/kernel-version) && \
-          echo "Target Kernel: ${ublue_kernel}" && \
-          dnf install -y git make gcc gcc-c++ elfutils-libelf-devel kernel-devel-${ublue_kernel} && \
-          mkdir -p /lib/modules/${ublue_kernel} && \
-          ln -s /usr/src/kernels/${ublue_kernel} /lib/modules/${ublue_kernel}/build && \
-          \
-          echo "=========================================" && \
-          echo "1. WI-FI DRIVER BUILD START (aic8800)" && \
-          echo "=========================================" && \
-          git clone https://github.com/shenmintao/aic8800d80.git /usr/src/aic8800 && \
-          cd /usr/src/aic8800 && \
-          make KSRC=/lib/modules/${ublue_kernel}/build ARCH=x86_64 modules && \
-          \
-          echo "--> [FACT CHECK] WI-FI DRIVER FILE LIST:" && \
-          ls -la /usr/src/aic8800/*.ko /usr/src/aic8800/*/*.ko 2>/dev/null || echo "Wi-Fi Driver Build Failed" && \
-          \
-          echo "=========================================" && \
-          echo "2. SENSOR DRIVER BUILD START (nct6687)" && \
-          echo "=========================================" && \
-          git clone https://github.com/Fred78290/nct6687d.git /usr/src/nct6687 && \
-          cd /usr/src/nct6687/nct6687d && \
-          make -C /lib/modules/${ublue_kernel}/build M=$PWD modules && \
-          \
-          echo "--> [FACT CHECK] SENSOR DRIVER FILE LIST:" && \
-          ls -la /usr/src/nct6687/nct6687d/*.ko 2>/dev/null || echo "Sensor Driver Build Failed" && \
-          echo "========================================="
-
-      # =========================================================
-      # 第3ステージ: 最小構成で受ける
-      # =========================================================
-      FROM $BASE_IMAGE
+    files:
+      - config/drivers.containerfile
