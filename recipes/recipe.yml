@@ -6,5 +6,4 @@ image-version: stable
 
 modules:
   - type: containerfile
-    files:
-      - config/drivers.containerfile
+    file: config/drivers.containerfile
