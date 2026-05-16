@@ -4,7 +4,7 @@ base-image: ghcr.io/ublue-os/bazzite
 image-version: stable
 
 modules:
-  - type: containerfile
-    containerfile: |
-      FROM $BASE_IMAGE
-      RUN echo "=== START DNF TEST ===" && dnf install -y git make gcc
+  - type: custom
+    run: |
+      echo "=== START DNF TEST ==="
+      dnf install -y git make gcc
