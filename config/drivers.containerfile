@@ -28,7 +28,7 @@ RUN ublue_kernel=$(cat /tmp/kernel-version) && \
     echo "=========================================" && \
     git clone https://github.com/shenmintao/aic8800d80.git /usr/src/aic8800 && \
     cd /usr/src/aic8800 && \
-    # KSRC（カーネルソースパス）を明示的に引き渡す
+    # aic8800のトップのMakefileではなく、ビルドの本体である「bsp」へ環境変数を引き渡して叩く
     make KSRC=/lib/modules/${ublue_kernel}/build ARCH=x86_64 modules && \
     #
     echo "--> [FACT CHECK] WI-FI DRIVER FILE LIST:" && \
@@ -41,7 +41,7 @@ RUN ublue_kernel=$(cat /tmp/kernel-version) && \
     echo "2. SENSOR DRIVER BUILD START (nct6687)" && \
     echo "=========================================" && \
     git clone https://github.com/Fred78290/nct6687d.git /usr/src/nct6687 && \
-    # 正しい子ディレクトリへ移動してビルド
+    # Makefileが存在する「nct6687d」子ディレクトリに正確に移動してからmakeを叩く
     cd /usr/src/nct6687/nct6687d && \
     make -C /lib/modules/${ublue_kernel}/build M=$PWD modules && \
     #
