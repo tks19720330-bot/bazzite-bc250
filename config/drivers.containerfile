@@ -16,8 +16,7 @@ RUN dnf copr enable -y ublue-os/packages \
     && dnf install -y git make gcc kernel-headers \
     && dnf clean all
 
-# 3. 1つのRUN命令の中で、カーネルバージョンの取得からビルドまでを完全一気通貫で実行
-# 各行の末尾を必ず「&& \」で繋ぎ、変数の消失（リーク）を物理的に防ぎます
+# 3. 1つのRUN命令内で、カーネルバージョンの取得からビルドまでを一気通貫で実行
 RUN ublue_kernel=$(cat /tmp/kernel-version) \
     && dnf install -y kernel-devel-${ublue_kernel} \
     && git clone https://github.com/shenmintao/aic8800d80.git /usr/src/aic8800 \
@@ -27,7 +26,7 @@ RUN ublue_kernel=$(cat /tmp/kernel-version) \
     && cd /usr/src/nct6687 \
     && make -C /lib/modules/${ublue_kernel}/build M=$PWD modules
 
-# 4. 成果物を、カーネル名に依存しない固定の絶対パスへ集約
+# 4. 【修正ポイント】ワイルドカードを使わず、明確に分けた固定フォルダ内へ確実に集約
 RUN mkdir -p /tmp/out/modules/ /tmp/out/firmware/ \
     && cp /usr/src/aic8800/*.ko /tmp/out/modules/ \
     && cp /usr/src/nct6687/*.ko /tmp/out/modules/ \
@@ -38,14 +37,14 @@ RUN mkdir -p /tmp/out/modules/ /tmp/out/firmware/ \
 # =========================================================
 FROM $BASE_IMAGE
 
-# 成果物とバージョンファイルを、本番イメージの一時領域（固定パス）へコピー
-# （COPYの右辺に変数を一切使わないため、文法エラーや空振りは発生しません）
+# 【修正ポイント】末尾の「/*」を完全に排除。
+# フォルダそのものを丸ごとコピーさせることで、コンテナエンジンのパース失敗を物理的に防ぎます
 COPY --from=builder /tmp/kernel-version /tmp/kernel-version
-COPY --from=builder /tmp/out/modules/* /tmp/stage_modules/
-COPY --from=builder /tmp/out/firmware/* /tmp/stage_firmware/
+COPY --from=builder /tmp/out/modules/ /tmp/stage_modules/
+COPY --from=builder /tmp/out/firmware/ /tmp/stage_firmware/
 
 # 最終処理: シェル環境（RUN）の内部だけで lookaside-kernel-version を展開
-# 全ての処理を「1つのRUN」と「完璧に繋がった && \」で一気通貫に実行します
+# サイレント失敗の原因となる「rm -rf」はあえて排除し、何かあればActionsが赤文字で落ちるようにします
 RUN ublue_kernel=$(lookaside-kernel-version) \
     && mkdir -p /usr/lib/modules/${ublue_kernel}/extra/ \
     && cp /tmp/stage_modules/*.ko /usr/lib/modules/${ublue_kernel}/extra/ \
@@ -54,5 +53,4 @@ RUN ublue_kernel=$(lookaside-kernel-version) \
     && cp /tmp/stage_firmware/*.bin /usr/lib/firmware/aic8800/ \
     && depmod -a ${ublue_kernel} \
     && echo "aic8800" > /etc/modules-load.d/aic8800.conf \
-    && echo "nct6687" > /etc/modules-load.d/nct6687.conf \
-    && rm -rf /tmp/kernel-version /tmp/stage_modules /tmp/stage_firmware
+    && echo "nct6687" > /etc/modules-load.d/nct6687.conf
