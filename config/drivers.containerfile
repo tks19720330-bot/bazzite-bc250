@@ -4,57 +4,55 @@
 FROM $BASE_IMAGE AS bazzite-base
 
 # =========================================================
-# 第2ステージ: 抽出したバージョンを「ENV」に完全固定してビルド
+# 第2ステージ: 抽出したバージョンを使ってドライバをクリーンビルド
 # =========================================================
 FROM fedora:44 AS builder
 
-# 本番Bazziteから正確なカーネルバージョンのテキストをコピー
+# 1. 本番イメージからカーネルバージョンのテキストファイルを一時領域にコピー
 COPY --from=bazzite-base /usr/share/ublue-os/kernel-version /tmp/kernel-version
 
-# 【本質的修正】catした中身をコンテナ自体の環境変数（ENV）として永続化
-# これにより、これ以降のすべてのRUN命令で、途切れることなく一貫して ${TARGET_KERNEL} が使えます
-AUTO_KERNEL_VERSION=$(cat /tmp/kernel-version)
-ENV TARGET_KERNEL=$AUTO_KERNEL_VERSION
-
-# 1. 正確な kernel-devel のインストール
+# 2. Bazzite専用リポジトリの有効化と、共通ビルドツールのインストール
 RUN dnf copr enable -y ublue-os/packages \
-    && dnf install -y git make gcc kernel-devel-${TARGET_KERNEL} kernel-headers \
+    && dnf install -y git make gcc kernel-headers \
     && dnf clean all
 
-# 2. Wi-Fiドライバのビルド（確実に正しいkernel-develのパスを参照）
-RUN git clone https://github.com/shenmintao/aic8800d80.git /usr/src/aic8800 \
+# 3. 1つのRUN命令の中で、カーネルバージョンの取得からビルドまでを完全一気通貫で実行
+# 各行の末尾を必ず「&& \」で繋ぎ、変数の消失（リーク）を物理的に防ぎます
+RUN ublue_kernel=$(cat /tmp/kernel-version) \
+    && dnf install -y kernel-devel-${ublue_kernel} \
+    && git clone https://github.com/shenmintao/aic8800d80.git /usr/src/aic8800 \
     && cd /usr/src/aic8800 \
-    && make -C /lib/modules/${TARGET_KERNEL}/build M=$PWD modules
-
-# 3. センサー用ドライバのビルド
-RUN git clone https://github.com/Fred78290/nct6687d.git /usr/src/nct6687 \
+    && make -C /lib/modules/${ublue_kernel}/build M=$PWD modules \
+    && git clone https://github.com/Fred78290/nct6687d.git /usr/src/nct6687 \
     && cd /usr/src/nct6687 \
-    && make -C /lib/modules/${TARGET_KERNEL}/build M=$PWD modules
+    && make -C /lib/modules/${ublue_kernel}/build M=$PWD modules
+
+# 4. 成果物を、カーネル名に依存しない固定の絶対パスへ集約
+RUN mkdir -p /tmp/out/modules/ /tmp/out/firmware/ \
+    && cp /usr/src/aic8800/*.ko /tmp/out/modules/ \
+    && cp /usr/src/nct6687/*.ko /tmp/out/modules/ \
+    && cp /usr/src/aic8800/images/*.bin /tmp/out/firmware/
 
 # =========================================================
-# 第3ステージ: 成果物を本番イメージへ100%安全に結合
+# 第3ステージ: 成果物を本番イメージへ100%安全に仕分け配置
 # =========================================================
 FROM $BASE_IMAGE
 
-# 第2ステージで確定した環境変数を、第3ステージ（本番環境）側にも再度バトンリレー
+# 成果物とバージョンファイルを、本番イメージの一時領域（固定パス）へコピー
+# （COPYの右辺に変数を一切使わないため、文法エラーや空振りは発生しません）
 COPY --from=builder /tmp/kernel-version /tmp/kernel-version
-AUTO_KERNEL_VERSION=$(cat /tmp/kernel-version)
-ENV TARGET_KERNEL=$AUTO_KERNEL_VERSION
+COPY --from=builder /tmp/out/modules/* /tmp/stage_modules/
+COPY --from=builder /tmp/out/firmware/* /tmp/stage_firmware/
 
-# 不確定なスクリプトに頼らず、ENV（環境変数）に固定された絶対パスへダイレクト配置
-RUN mkdir -p /usr/lib/modules/${TARGET_KERNEL}/extra/
-
-# 成果物の確実なコピーと配置
-COPY --from=builder /usr/src/aic8800/*.ko /usr/lib/modules/${TARGET_KERNEL}/extra/
-COPY --from=builder /usr/src/nct6687/*.ko /usr/lib/modules/${TARGET_KERNEL}/extra/
-
-# ファームウェアの配置（サブディレクトリ側にも重複配置して認識漏れを完全防御）
-mkdir -p /usr/lib/firmware/aic8800/
-COPY --from=builder /usr/src/aic8800/images/*.bin /usr/lib/firmware/
-COPY --from=builder /usr/src/aic8800/images/*.bin /usr/lib/firmware/aic8800/
-
-# カーネルの依存関係を更新し、自動ロードを設定
-RUN depmod -a ${TARGET_KERNEL} \
+# 最終処理: シェル環境（RUN）の内部だけで lookaside-kernel-version を展開
+# 全ての処理を「1つのRUN」と「完璧に繋がった && \」で一気通貫に実行します
+RUN ublue_kernel=$(lookaside-kernel-version) \
+    && mkdir -p /usr/lib/modules/${ublue_kernel}/extra/ \
+    && cp /tmp/stage_modules/*.ko /usr/lib/modules/${ublue_kernel}/extra/ \
+    && mkdir -p /usr/lib/firmware/aic8800/ \
+    && cp /tmp/stage_firmware/*.bin /usr/lib/firmware/ \
+    && cp /tmp/stage_firmware/*.bin /usr/lib/firmware/aic8800/ \
+    && depmod -a ${ublue_kernel} \
     && echo "aic8800" > /etc/modules-load.d/aic8800.conf \
     && echo "nct6687" > /etc/modules-load.d/nct6687.conf \
-    && rm -f /tmp/kernel-version
+    && rm -rf /tmp/kernel-version /tmp/stage_modules /tmp/stage_firmware
