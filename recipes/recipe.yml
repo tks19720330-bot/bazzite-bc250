@@ -5,5 +5,7 @@ base-image: ghcr.io/ublue-os/bazzite
 image-version: stable
 
 modules:
+  # これがBlueBuildの公式仕様に沿った、外部ファイルの一般的な指定方法です
   - type: containerfile
-    file: config/drivers.containerfile
+    snippets:
+      - config/drivers.containerfile
