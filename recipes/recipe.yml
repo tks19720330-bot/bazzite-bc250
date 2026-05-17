@@ -27,16 +27,16 @@ modules:
         git clone https://github.com/Fred78290/nct6687d.git
         cd nct6687d
 
-        make akmod
+        make rpm
+
+        find . -name "*.rpm"
 
         dnf install -y ./*.rpm
 
-        # module autoload
         cat >/etc/modules-load.d/nct6687d.conf <<EOF
         nct6687
         EOF
 
-        # MSI boards workaround
         cat >/etc/modprobe.d/nct6687d.conf <<EOF
         options nct6687 fan_config=msi_alt1
         EOF
