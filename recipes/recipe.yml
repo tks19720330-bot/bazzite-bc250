@@ -1,18 +1,10 @@
-name: bazzite-bc250
-description: Custom Bazzite image for AMD BC-250 with nct6687.
-base-image: ghcr.io/ublue-os/bazzite
-image-version: stable
-
 modules:
-  - type: rpm-ostree
+  - type: dnf
     install:
-      - git
-      - make
       - gcc
-      - gcc-c++
+      - make
       - kernel-devel
-      - kernel-headers
-      - lm_sensors
+      - git
 
   - type: script
     snippets:
@@ -25,10 +17,11 @@ modules:
         cd nct6687d
 
         KERNEL_DIR=$(find /usr/src/kernels -maxdepth 1 -type d | tail -n 1)
-
-        make KDIR="${KERNEL_DIR}"
-
         KERNEL_VERSION=$(basename "${KERNEL_DIR}")
+
+        sed -i "s|/lib/modules/\$(shell uname -r)/build|${KERNEL_DIR}|g" Makefile
+
+        make
 
         mkdir -p /usr/lib/modules/${KERNEL_VERSION}/extra
 
