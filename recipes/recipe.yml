@@ -22,36 +22,28 @@ modules:
     snippets:
       - |
         set -euxo pipefail
-  
+        
         cd /tmp
-  
+        
         git clone https://github.com/Fred78290/nct6687d.git
         cd nct6687d
-  
-        find . -name "*.spec"
-  
-        SPEC=$(find . -name "*.spec" | head -n1)
-  
-        echo "SPEC FILE: $SPEC"
-  
+        
         mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
-  
-        cp "$SPEC" ~/rpmbuild/SPECS/
-  
-        SPECNAME=$(basename "$SPEC")
-  
+        
+        cp ./fedora/nct6687d-kmod.spec ~/rpmbuild/SPECS/
+        
         tar czf ~/rpmbuild/SOURCES/nct6687d.tar.gz .
-  
-        rpmbuild -ba ~/rpmbuild/SPECS/$SPECNAME
-  
+        
+        rpmbuild -ba ~/rpmbuild/SPECS/nct6687d-kmod.spec
+        
         find ~/rpmbuild/RPMS -name "*.rpm"
-  
+        
         dnf install -y ~/rpmbuild/RPMS/*/*.rpm
-  
+        
         cat >/etc/modules-load.d/nct6687d.conf <<EOF
         nct6687
         EOF
-  
+        
         cat >/etc/modprobe.d/nct6687d.conf <<EOF
         options nct6687 fan_config=msi_alt1
         EOF
