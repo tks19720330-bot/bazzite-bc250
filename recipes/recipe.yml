@@ -13,7 +13,7 @@ modules:
       - rpm-build
       - akmods
       - kmodtool
-      - kernel-devel
+      - kernel-devel-matched
       - kernel-headers
       - lm_sensors
 
