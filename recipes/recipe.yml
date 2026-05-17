@@ -32,7 +32,8 @@ modules:
         
         cp ./fedora/nct6687d-kmod.spec ~/rpmbuild/SPECS/
         
-        tar czf ~/rpmbuild/SOURCES/nct6687d.tar.gz .
+        # spec が期待する名前
+        tar czf ~/rpmbuild/SOURCES/nct6687d-1.0.MAKEFILE_PKGVER.tar.gz .
         
         rpmbuild -ba ~/rpmbuild/SPECS/nct6687d-kmod.spec
         
