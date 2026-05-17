@@ -1,3 +1,6 @@
+---
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+
 name: bazzite-bc250
 description: Bazzite with nct6687 driver
 base-image: ghcr.io/ublue-os/bazzite
@@ -5,11 +8,12 @@ image-version: stable
 
 modules:
   - type: dnf
-    packages:
-      - gcc
-      - make
-      - kernel-devel-matched
-      - git
+    install:
+      packages:
+        - gcc
+        - make
+        - kernel-devel-matched
+        - git
 
   - type: script
     snippets:
