@@ -10,12 +10,33 @@ modules:
       - make
       - gcc
       - gcc-c++
-      - dkms
       - rpm-build
+      - akmods
+      - kmodtool
       - kernel-devel
       - kernel-headers
       - lm_sensors
 
   - type: script
-    scripts:
-      - install-nct6687d.sh
+    snippets:
+      - |
+        set -euxo pipefail
+
+        cd /tmp
+
+        git clone https://github.com/Fred78290/nct6687d.git
+        cd nct6687d
+
+        make akmod
+
+        dnf install -y ./*.rpm
+
+        # module autoload
+        cat >/etc/modules-load.d/nct6687d.conf <<EOF
+        nct6687
+        EOF
+
+        # MSI boards workaround
+        cat >/etc/modprobe.d/nct6687d.conf <<EOF
+        options nct6687 fan_config=msi_alt1
+        EOF
