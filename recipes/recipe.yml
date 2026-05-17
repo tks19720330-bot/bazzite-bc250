@@ -11,12 +11,13 @@ modules:
       - gcc
       - gcc-c++
       - rpm-build
+      - rpmdevtools
       - akmods
       - kmodtool
       - kernel-devel-matched
       - kernel-headers
       - lm_sensors
-
+      
   - type: script
     snippets:
       - |
@@ -27,11 +28,17 @@ modules:
         git clone https://github.com/Fred78290/nct6687d.git
         cd nct6687d
 
-        make rpm
+        mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
-        find . -name "*.rpm"
+        cp nct6687d.spec ~/rpmbuild/SPECS/
 
-        dnf install -y ./*.rpm
+        tar czf ~/rpmbuild/SOURCES/nct6687d.tar.gz .
+
+        rpmbuild -ba ~/rpmbuild/SPECS/nct6687d.spec
+
+        find ~/rpmbuild/RPMS -name "*.rpm"
+
+        dnf install -y ~/rpmbuild/RPMS/*/*.rpm
 
         cat >/etc/modules-load.d/nct6687d.conf <<EOF
         nct6687
