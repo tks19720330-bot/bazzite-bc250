@@ -12,8 +12,8 @@ modules:
       packages:
         - gcc
         - make
-        - kernel-devel-matched
         - git
+        - kernel-devel-matched
 
   - type: script
     snippets:
@@ -28,15 +28,16 @@ modules:
         KERNEL_DIR=$(find /usr/src/kernels -maxdepth 1 -type d | tail -n 1)
         KERNEL_VERSION=$(basename "${KERNEL_DIR}")
 
-        sed -i "s|/lib/modules/\$(shell uname -r)/build|${KERNEL_DIR}|g" Makefile
-
-        make
+        make KVER="${KERNEL_VERSION}" KDIR="${KERNEL_DIR}"
 
         mkdir -p /usr/lib/modules/${KERNEL_VERSION}/extra
 
-        cp nct6687.ko /usr/lib/modules/${KERNEL_VERSION}/extra/
+        find . -name '*.ko'
 
-        depmod -a ${KERNEL_VERSION}
+        cp $(find . -name 'nct6687*.ko' | head -n 1) \
+          /usr/lib/modules/${KERNEL_VERSION}/extra/nct6687.ko
+
+        depmod -a "${KERNEL_VERSION}"
 
         cat >/etc/modules-load.d/nct6687.conf <<EOF
         nct6687
