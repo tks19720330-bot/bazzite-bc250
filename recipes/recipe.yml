@@ -1,5 +1,5 @@
 name: bazzite-bc250
-description: Custom Bazzite image for AMD BC-250 with aic8800 and nct6687 drivers.
+description: Custom Bazzite image for AMD BC-250 with nct6687.
 base-image: ghcr.io/ublue-os/bazzite
 image-version: stable
 
@@ -24,13 +24,17 @@ modules:
         git clone https://github.com/Fred78290/nct6687d.git
         cd nct6687d
 
-        make
+        KERNEL_DIR=$(find /usr/src/kernels -maxdepth 1 -type d | tail -n 1)
 
-        mkdir -p /usr/lib/modules/$(uname -r)/extra
+        make KDIR="${KERNEL_DIR}"
 
-        cp nct6687.ko /usr/lib/modules/$(uname -r)/extra/
+        KERNEL_VERSION=$(basename "${KERNEL_DIR}")
 
-        depmod -a $(uname -r)
+        mkdir -p /usr/lib/modules/${KERNEL_VERSION}/extra
+
+        cp nct6687.ko /usr/lib/modules/${KERNEL_VERSION}/extra/
+
+        depmod -a ${KERNEL_VERSION}
 
         cat >/etc/modules-load.d/nct6687.conf <<EOF
         nct6687
