@@ -1,4 +1,3 @@
----
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 
 name: bazzite-bc250
@@ -9,11 +8,10 @@ image-version: stable
 modules:
   - type: dnf
     install:
-      packages:
-        - gcc
-        - make
-        - git
-        - kernel-devel-matched
+      - gcc
+      - make
+      - git
+      - kernel-devel-matched
 
   - type: script
     snippets:
@@ -28,13 +26,14 @@ modules:
         KERNEL_DIR=$(find /usr/src/kernels -maxdepth 1 -type d | tail -n 1)
         KERNEL_VERSION=$(basename "${KERNEL_DIR}")
 
-        make KVER="${KERNEL_VERSION}" KDIR="${KERNEL_DIR}"
+        export KERNELRELEASE="${KERNEL_VERSION}"
+        export KDIR="${KERNEL_DIR}"
+
+        make
 
         mkdir -p /usr/lib/modules/${KERNEL_VERSION}/extra
 
-        find . -name '*.ko'
-
-        cp $(find . -name 'nct6687*.ko' | head -n 1) \
+        cp $(find . -name '*.ko' | head -n 1) \
           /usr/lib/modules/${KERNEL_VERSION}/extra/nct6687.ko
 
         depmod -a "${KERNEL_VERSION}"
