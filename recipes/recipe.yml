@@ -1,9 +1,14 @@
+name: bazzite-bc250
+description: Bazzite with nct6687 driver
+base-image: ghcr.io/ublue-os/bazzite
+image-version: stable
+
 modules:
   - type: dnf
-    install:
+    packages:
       - gcc
       - make
-      - kernel-devel
+      - kernel-devel-matched
       - git
 
   - type: script
