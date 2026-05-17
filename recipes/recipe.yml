@@ -4,7 +4,18 @@ base-image: ghcr.io/ublue-os/bazzite
 image-version: stable
 
 modules:
-  - type: custom
-    run: |
-      echo "=== START DNF TEST ==="
-      dnf install -y git make gcc
+  - type: rpm-ostree
+    install:
+      - git
+      - make
+      - gcc
+      - gcc-c++
+      - dkms
+      - rpm-build
+      - kernel-devel
+      - kernel-headers
+      - lm_sensors
+
+  - type: script
+    scripts:
+      - install-nct6687d.sh
