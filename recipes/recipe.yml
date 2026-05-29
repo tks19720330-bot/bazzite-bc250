@@ -67,6 +67,7 @@ modules:
         export KSRC="${KERNEL_DIR}"
 
         find . -name Makefile
+        head -100 /tmp/aic8800d80/drivers/aic8800/Makefile
         make \
           CONFIG_PLATFORM_PC=y \
           -j$(nproc)
