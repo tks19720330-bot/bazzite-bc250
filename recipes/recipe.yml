@@ -57,8 +57,7 @@ modules:
         cd /tmp
 
         git clone https://github.com/shenmintao/aic8800d80.git
-        cd aic8800d80
-
+        
         KERNEL_DIR=$(find /usr/src/kernels -maxdepth 1 -type d | tail -n 1)
         KERNEL_VERSION=$(basename "${KERNEL_DIR}")
 
@@ -66,16 +65,19 @@ modules:
         export KDIR="${KERNEL_DIR}"
         export KSRC="${KERNEL_DIR}"
 
-        find . -name Makefile
-        head -100 /tmp/aic8800d80/drivers/aic8800/Makefile
+        cd aic8800d80/drivers/aic8800
+        
         make \
-          CONFIG_PLATFORM_PC=y \
-          -j$(nproc)
-
+          KDIR="${KERNEL_DIR}" \
+          KVER="${KERNEL_VERSION}"
+  
         mkdir -p /usr/lib/modules/${KERNEL_VERSION}/extra
 
-        find . -name '*.ko' -exec cp {} \
-          /usr/lib/modules/${KERNEL_VERSION}/extra/ \;
+        cp aic_load_fw/aic_load_fw.ko \
+           /usr/lib/modules/${KERNEL_VERSION}/extra/
+        
+        cp aic8800_fdrv/aic8800_fdrv.ko \
+           /usr/lib/modules/${KERNEL_VERSION}/extra/
 
         depmod -a "${KERNEL_VERSION}"
 
