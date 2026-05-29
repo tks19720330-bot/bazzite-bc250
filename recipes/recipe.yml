@@ -66,6 +66,7 @@ modules:
         export KDIR="${KERNEL_DIR}"
         export KSRC="${KERNEL_DIR}"
 
+        find . -name Makefile
         make \
           CONFIG_PLATFORM_PC=y \
           -j$(nproc)
