@@ -81,11 +81,13 @@ modules:
 
         depmod -a "${KERNEL_VERSION}"
 
+        find /tmp/aic8800d80/fw -maxdepth 2 -type f
+        
         mkdir -p /lib/firmware/aic8800D80
-
-        cp -r fw/aic8800D80/* \
-          /lib/firmware/aic8800D80/
-
+        
+        cp -r /tmp/aic8800d80/fw/aic8800D80/* \
+              /lib/firmware/aic8800D80/
+      
         cat >/etc/modules-load.d/aic8800.conf <<EOF
         aic8800_fdrv
         EOF
