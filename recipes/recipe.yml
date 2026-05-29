@@ -84,10 +84,10 @@ modules:
         find /tmp/aic8800d80/fw -maxdepth 2 -type f
         
         mkdir -p /lib/firmware/aic8800D80
-        
-        cp -r /tmp/aic8800d80/fw/aic8800D80/* \
-              /lib/firmware/aic8800D80/
-      
+        cp -a /tmp/aic8800d80/fw/* \
+          /lib/firmware/
+
         cat >/etc/modules-load.d/aic8800.conf <<EOF
+        aic_load_fw
         aic8800_fdrv
         EOF
