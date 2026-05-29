@@ -49,3 +49,37 @@ modules:
         cat >/etc/modprobe.d/nct6687.conf <<EOF
         options nct6687 fan_config=msi_alt1
         EOF
+  - type: script
+    snippets:
+      - |
+        set -euxo pipefail
+
+        cd /tmp
+
+        git clone https://github.com/shenmintao/aic8800d80.git
+        cd aic8800d80
+
+        KERNEL_DIR=$(find /usr/src/kernels -maxdepth 1 -type d | tail -n 1)
+        KERNEL_VERSION=$(basename "${KERNEL_DIR}")
+
+        export KERNELRELEASE="${KERNEL_VERSION}"
+        export KDIR="${KERNEL_DIR}"
+        export KSRC="${KERNEL_DIR}"
+
+        make
+
+        mkdir -p /usr/lib/modules/${KERNEL_VERSION}/extra
+
+        find . -name '*.ko' -exec cp {} \
+          /usr/lib/modules/${KERNEL_VERSION}/extra/ \;
+
+        depmod -a "${KERNEL_VERSION}"
+
+        mkdir -p /lib/firmware/aic8800D80
+
+        cp -r fw/aic8800D80/* \
+          /lib/firmware/aic8800D80/
+
+        cat >/etc/modules-load.d/aic8800.conf <<EOF
+        aic8800_fdrv
+        EOF
