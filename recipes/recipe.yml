@@ -87,6 +87,11 @@ modules:
         cp -a /tmp/aic8800d80/fw/* \
           /lib/firmware/
 
+        mkdir -p /etc/udev/rules.d
+        
+        cp /tmp/aic8800d80/aic.rules \
+           /etc/udev/rules.d/90-aic8800-mode-switch.rules
+   
         cat >/etc/modules-load.d/aic8800.conf <<EOF
         aic_load_fw
         aic8800_fdrv
