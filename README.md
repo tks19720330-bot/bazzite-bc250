@@ -17,7 +17,6 @@ The image builds and installs the out-of-tree NCT6687 kernel module.
 Included configuration:
 
 * Automatically loads `nct6687` at boot
-* Uses `fan_config=msi_alt1`
 * Enables sensor monitoring through `lm_sensors`
 
 Source:
