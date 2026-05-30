@@ -1,43 +1,124 @@
-# BlueBuild Template &nbsp; [![bluebuild build badge](https://github.com/blue-build/template/actions/workflows/build.yml/badge.svg)](https://github.com/blue-build/template/actions/workflows/build.yml)
+# bazzite-bc250
 
-See the [BlueBuild docs](https://blue-build.org/how-to/setup/) for quick setup instructions for setting up your own repository based on this template.
+Custom Bazzite image for AMD BC-250 systems with additional hardware support.
 
-After setup, it is recommended you update this README to describe your custom image.
+This image is based on Bazzite and includes:
+
+* Nuvoton NCT6687 hardware monitoring driver (`nct6687`)
+* AIC8800D80 Wi-Fi driver (`aic8800d80`)
+* Automatic module loading and firmware installation
+
+## Features
+
+### NCT6687 Hardware Monitoring
+
+The image builds and installs the out-of-tree NCT6687 kernel module.
+
+Included configuration:
+
+* Automatically loads `nct6687` at boot
+* Uses `fan_config=msi_alt1`
+* Enables sensor monitoring through `lm_sensors`
+
+Source:
+
+* https://github.com/Fred78290/nct6687d
+
+### AIC8800D80 Wi-Fi Support
+
+The image builds and installs the AIC8800D80 kernel modules and firmware.
+
+Included components:
+
+* `aic_load_fw`
+* `aic8800_fdrv`
+* Firmware files
+* Udev rules for device mode switching
+* Automatic module loading at boot
+
+Source:
+
+* https://github.com/shenmintao/aic8800d80
 
 ## Installation
 
-> [!WARNING]  
-> [This is an experimental feature](https://www.fedoraproject.org/wiki/Changes/OstreeNativeContainerStable), try at your own discretion.
-
-To rebase an existing atomic Fedora installation to the latest build:
-
-- First rebase to the unsigned image, to get the proper signing keys and policies installed:
-  ```
-  rpm-ostree rebase ostree-unverified-registry:ghcr.io/blue-build/template:latest
-  ```
-- Reboot to complete the rebase:
-  ```
-  systemctl reboot
-  ```
-- Then rebase to the signed image, like so:
-  ```
-  rpm-ostree rebase ostree-image-signed:docker://ghcr.io/blue-build/template:latest
-  ```
-- Reboot again to complete the installation
-  ```
-  systemctl reboot
-  ```
-
-The `latest` tag will automatically point to the latest build. That build will still always use the Fedora version specified in `recipe.yml`, so you won't get accidentally updated to the next major version.
-
-## ISO
-
-If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.
-
-## Verification
-
-These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the signature by downloading the `cosign.pub` file from this repo and running the following command:
+Rebase an existing Bazzite installation to this image:
 
 ```bash
-cosign verify --key cosign.pub ghcr.io/blue-build/template
+sudo rpm-ostree rebase \
+  ostree-unverified-registry:ghcr.io/tks19720330-bot/bazzite-bc250:stable
 ```
+
+Reboot after deployment:
+
+```bash
+systemctl reboot
+```
+
+## Verify Driver Installation
+
+### NCT6687
+
+```bash
+lsmod | grep nct6687
+```
+
+```bash
+sensors
+```
+
+### AIC8800D80
+
+```bash
+lsmod | grep aic
+```
+
+```bash
+dmesg | grep -i aic
+```
+
+## Updating
+
+This image is automatically built through GitHub Actions when changes are pushed to this repository.
+
+To update a running system:
+
+```bash
+rpm-ostree upgrade
+```
+
+or:
+
+```bash
+ujust update
+```
+
+If a new image version is available, reboot to apply the update.
+
+## Building Locally
+
+Install BlueBuild and build the image:
+
+```bash
+bluebuild build recipes/recipe.yml
+```
+
+## Disclaimer
+
+This project uses third-party kernel modules that are not included in the upstream Bazzite project.
+
+Compatibility may vary depending on:
+
+* Kernel version
+* BC-250 hardware revision
+* AIC8800D80 adapter revision
+
+Use at your own risk.
+
+## Credits
+
+* Bazzite Team
+* Universal Blue Project
+* Fred78290 (NCT6687 driver)
+* shenmintao (AIC8800D80 driver)
+* BlueBuild Project
